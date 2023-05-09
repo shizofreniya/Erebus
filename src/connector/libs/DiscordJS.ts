@@ -3,7 +3,7 @@ import { NodeConfig } from '../../Erebus';
 
 export class DiscordJS extends Connector {
     public sendPacket(shardId: number, payload: any, important: boolean): void {
-        return this.client.ws.shards.get(shardId)?.send(payload, important);
+        return this.client.ws.shards.get(shardId)?.send(payload);
     }
 
     public get id(): string {

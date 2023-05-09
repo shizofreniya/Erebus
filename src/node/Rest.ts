@@ -154,11 +154,8 @@ export class Rest {
         await this.fetch(`/sessions/${this.sessionId}/players/${guildId}`, { method: 'DELETE' });
     }
 
-    public updateSession(resumingKey?: string, timeout?: number): Promise<SessionInfo | undefined> {
-        return this.fetch(`/sessions/${this.sessionId}`, {
-            method: 'PATCH',
-            body: { resumingKey, timeout }
-        });
+    public updateSession(resuming: boolean, timeout: number): Promise<SessionInfo | undefined> {
+        return this.fetch(`/sessions/${this.sessionId}`, { method: 'PATCH', body: { resuming, timeout }});
     }
 
     public stats(): Promise<NodeStats | undefined> {
@@ -191,6 +188,7 @@ export class Rest {
                 'User-Agent': 'Erebus/1.0.0',
                 'Content-Type': 'application/json'
             },
+
             signal: abortController.signal
         }
 

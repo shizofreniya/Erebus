@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events';
 import { Erebus, NodeConfig } from '../Erebus';
 import Websocket from 'ws';
-import { IncomingMessage } from 'http';
-import { OPCodes, State, sleep } from '../Utils';
+import { OPCodes, State } from '../Constants';
+import { sleep } from '../Utils';
 import { Player } from '../player/Player';
 import { Rest } from './Rest';
 
@@ -129,6 +129,8 @@ export class Node extends EventEmitter {
         if (!this.manager.id)
             throw new Error('Client not ready');
 
+        this.state = State.CONNECTING;
+
         let headers: ResumableHeaders | NonResumableHeaders;
         if (this.manager.options.resume) {
             headers = {
@@ -159,6 +161,7 @@ export class Node extends EventEmitter {
         this.sessionId = null;
         this.state = State.DISCONNECTED;
         this.destroyed = true;
+        this.emit('disconnect');
     }
 
     private async reconnect(): Promise<void> {
@@ -180,6 +183,11 @@ export class Node extends EventEmitter {
             case OPCodes.READY:
                 this.sessionId = json.sessionId;
                 this.state = State.CONNECTED;
+
+                this.emit('ready', json.resumed);
+
+                if (this.manager.options.resume && this.manager.options.sessionId)
+                    await this.rest.updateSession(this.manager.options.resume, this.manager.options.resumeTimeout || 60);
                 break;
 
             case OPCodes.STATS:
@@ -200,6 +208,8 @@ export class Node extends EventEmitter {
             default:
                 break;
         }
+
+        this.emit('raw', json);
     }
 
     private open(): void {
@@ -208,6 +218,8 @@ export class Node extends EventEmitter {
     }
 
     private close(code: number, reason: unknown): void {
+        this.emit('close', code, reason);
+
         if (this.destroyed || this.reconnects >= (this.manager.options.reconnectTries || 3))
             this.movePlayers();
         else
@@ -249,12 +261,12 @@ export class Node extends EventEmitter {
         const player = this.players.get(packet.d.guild_id);
         if (!player) return;
 
-        if (packet.t === 'VOICE_SERVER_UPDATE') {
-            player.connection.setServerUpdate(packet.d);
-            return;
-        }
+        if (packet.t === 'VOICE_SERVER_UPDATE')
+            return player.connection.setServerUpdate(packet.d);
 
-        if (packet.d.user_id !== this.manager.id) return;
+        if (packet.d.user_id !== this.manager.id)
+            return;
+
         player.connection.setStateUpdate(packet.d);
     }
 }

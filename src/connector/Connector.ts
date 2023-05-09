@@ -1,15 +1,11 @@
 import { Erebus, NodeConfig } from '../Erebus';
 
-export interface ConnectorMethods {
-    sendPacket: any;
-    getId: any;
-}
-
 export const AllowedPackets = [ 'VOICE_STATE_UPDATE', 'VOICE_SERVER_UPDATE' ];
 
 export abstract class Connector {
     protected readonly client: any;
     protected manager: Erebus | null;
+
     constructor(client: any) {
         this.client = client;
         this.manager = null;

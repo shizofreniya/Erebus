@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import { Node, VoiceChannelOptions } from '../node/Node';
 import { Connection } from './Connection';
 import { Track, UpdatePlayerInfo, UpdatePlayerOptions} from '../node/Rest';
-import { State } from '../Utils';
+import { State } from '../Constants';
 
 export interface PlayOptions {
     encodedTrack: string;

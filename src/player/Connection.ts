@@ -1,5 +1,5 @@
 import { EventEmitter, once } from 'events';
-import { State, VoiceState } from '../Utils';
+import { State, VoiceState } from '../Constants';
 import { VoiceChannelOptions } from '../node/Node';
 import { Player } from './Player';
 import { LavalinkPlayerVoiceOptions } from '../node/Rest';
@@ -82,17 +82,14 @@ export class Connection extends EventEmitter {
         this.player.position = 0;
         this.player.filters = {};
         this.state = State.DISCONNECTED;
+
         if (destroyRemotePlayer)
             await this.destroy();
     }
 
     public async connect(options: VoiceChannelOptions): Promise<void> {
-        let { guildId, channelId, deaf, mute } = options;
-        if (typeof deaf === undefined) deaf = true;
-        if (typeof mute === undefined) mute = false;
-
         this.state = State.CONNECTING;
-        this.send({ guild_id: guildId, channel_id: channelId, self_deaf: deaf, self_mute: mute });
+        this.send({ guild_id: options.guildId, channel_id: options.channelId, self_deaf: options.deaf ?? true, self_mute: options.mute ?? false });
 
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 15000);
@@ -101,9 +98,12 @@ export class Connection extends EventEmitter {
             const [ status, error ] = await once(this, 'connectionUpdate', { signal: controller.signal });
             if (status !== VoiceState.SESSION_READY) {
                 switch(status) {
-                    case VoiceState.SESSION_ID_MISSING: throw new Error('The voice connection is not established due to missing session id');
-                    case VoiceState.SESSION_ENDPOINT_MISSING: throw new Error('The voice connection is not established due to missing connection endpoint');
-                    case VoiceState.SESSION_FAILED_UPDATE: throw error;
+                    case VoiceState.SESSION_ID_MISSING:
+                        throw new Error('The voice connection is not established due to missing session id');
+                    case VoiceState.SESSION_ENDPOINT_MISSING:
+                        throw new Error('The voice connection is not established due to missing connection endpoint');
+                    case VoiceState.SESSION_FAILED_UPDATE:
+                        throw error;
                 }
             }
             this.state = State.CONNECTED;
@@ -121,19 +121,18 @@ export class Connection extends EventEmitter {
     }
 
     public setStateUpdate(options: StateUpdatePartial): void {
-        const { session_id, channel_id, self_deaf, self_mute } = options;
-        if (this.channelId && (channel_id && this.channelId !== channel_id)) {
+        if (this.channelId && (options.channel_id && this.channelId !== options.channel_id)) {
             this.moved = true;
         }
 
-        this.channelId = channel_id || this.channelId;
-        if (!channel_id) {
+        this.channelId = options.channel_id || this.channelId;
+        if (!options.channel_id) {
             this.state = State.DISCONNECTED;
         }
 
-        this.deafened = self_deaf;
-        this.muted = self_mute;
-        this.sessionId = session_id || null;
+        this.deafened = options.self_deaf;
+        this.muted = options.self_mute;
+        this.sessionId = options.session_id || null;
     }
 
     public setServerUpdate(data: ServerUpdate): void {
@@ -163,6 +162,7 @@ export class Connection extends EventEmitter {
                 }
             }
         };
+
         this.player.node.rest.updatePlayer(playerUpdate)
             .then(() => this.emit('connectionUpdate', VoiceState.SESSION_READY))
             .catch(error => this.listenerCount('connectionUpdate') > 0 ? this.emit('connectionUpdate', VoiceState.SESSION_FAILED_UPDATE, error) : this.player.node.error(error));
