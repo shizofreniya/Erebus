@@ -147,9 +147,9 @@ export class Node extends EventEmitter {
 
         this.ws = new Websocket(`${this.isSecure ? 'wss' : 'ws'}://${this.url}/v4/websocket`, { headers } as any);
         this.ws.on('message', data => this.message(data));
-        this.ws.on('error', this.error);
-        this.ws.once('close', this.close);
-        this.ws.once('upgrade', this.open);
+        this.ws.on('error', error => this.error(error));
+        this.ws.once('close', (code, reason) => this.close(code, reason));
+        this.ws.once('upgrade', () => this.open());
     }
 
     private destroy() {
@@ -202,7 +202,7 @@ export class Node extends EventEmitter {
         }
     }
 
-    private open(response: IncomingMessage): void {
+    private open(): void {
         this.reconnects = 0;
         this.state = State.NEARLY;
     }
