@@ -1,0 +1,40 @@
+{
+	"name": "erebus",
+	"version": "1.0.0",
+	"description": "A stable and powerful Lavalink client",
+	"main": "dist/index.js",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		}
+	},
+	"scripts": {
+		"build": "npm run build:ts",
+		"build:ts": "tsup --config tsup-config.json",
+		"prepare": "npm run build:ts",
+		"test": "npm run build:ts && node example/index.js"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/shizofreniya/Erebus.git"
+	},
+	"author": "Auroth",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/shizofreniya/Erebus/issues"
+	},
+	"homepage": "https://github.com/shizofreniya/Erebus#readme",
+	"devDependencies": {
+		"@types/node": "^20.1.0",
+		"@types/ws": "^8.5.4",
+		"tsup": "^6.7.0",
+		"typescript": "^5.0.4"
+	},
+	"dependencies": {
+		"ws": "^8.13.0"
+	}
+}
