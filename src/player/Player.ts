@@ -68,9 +68,11 @@ export interface RotationSettings {
 
 export interface ResumeOptions {
     noReplace?: boolean;
-    pause?: boolean;
-    startTime?: number;
+    paused?: boolean;
+    position?: number;
     endTime?: number;
+    volume?: number;
+    filters?: FilterOptions;
 }
 
 export interface DistortionSettings {
@@ -249,9 +251,11 @@ export class Player extends EventEmitter {
         if (!this.track) return;
         const data = this.playerData;
         if (options.noReplace) data.noReplace = options.noReplace;
-        if (options.startTime) data.playerOptions.position = options.startTime;
-        if (options.endTime) data.playerOptions.position;
-        if (options.pause) data.playerOptions.paused = options.pause;
+        if (options.position) data.playerOptions.position = options.position;
+        if (options.endTime) data.playerOptions.endTime = options.endTime;
+        if (options.volume) data.playerOptions.volume = options.volume;
+        if (options.paused) data.playerOptions.paused = options.paused;
+        if (options.filters) data.playerOptions.filters = options.filters;
         await this.update(data);
         this.emit('resume', this);
     }
@@ -263,6 +267,7 @@ export class Player extends EventEmitter {
             const options = updatePlayer.playerOptions;
             if (options.position) this.position = options.position;
             if (options.paused) this.paused = options.paused;
+            if (options.volume) this.volume = options.volume;
             if (options.filters) this.filters = options.filters;
         }
     }
@@ -277,7 +282,7 @@ export class Player extends EventEmitter {
     public playerEvent(data: any) {
         switch (data.type) {
             case 'TrackStartEvent':
-                if (this.track) this.track = data.track;
+                this.track = data.track;
                 this.emit('start', data);
                 break;
 
