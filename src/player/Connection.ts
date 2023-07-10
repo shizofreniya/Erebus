@@ -117,7 +117,10 @@ export class Connection extends EventEmitter {
     }
 
     public async destroy(): Promise<void> {
-        await this.player.node.rest.destroyPlayer(this.guildId);
+        if (this.player.node.isV3)
+            this.player.node.queue.add({ op: 'destroy', guildId: this.guildId });
+        else
+            await this.player.node.rest.destroyPlayer(this.guildId);
     }
 
     public setStateUpdate(options: StateUpdatePartial): void {
@@ -163,9 +166,13 @@ export class Connection extends EventEmitter {
             }
         };
 
-        this.player.node.rest.updatePlayer(playerUpdate)
-            .then(() => this.emit('connectionUpdate', VoiceState.SESSION_READY))
-            .catch(error => this.listenerCount('connectionUpdate') > 0 ? this.emit('connectionUpdate', VoiceState.SESSION_FAILED_UPDATE, error) : this.player.node.error(error));
+        if (this.player.node.isV3) {
+            this.player.node.queue.add({ op: 'voiceUpdate', guildId: this.guildId, sessionId: this.sessionId, event: this.serverUpdate });
+            this.emit('connectionUpdate', VoiceState.SESSION_READY);
+        } else
+            this.player.node.rest.updatePlayer(playerUpdate)
+                .then(() => this.emit('connectionUpdate', VoiceState.SESSION_READY))
+                .catch(error => this.listenerCount('connectionUpdate') > 0 ? this.emit('connectionUpdate', VoiceState.SESSION_FAILED_UPDATE, error) : this.player.node.error(error));
     }
 
     private send(data: any): void {

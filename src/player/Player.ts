@@ -5,7 +5,7 @@ import { Track, UpdatePlayerInfo, UpdatePlayerOptions} from '../node/Rest';
 import { State } from '../Constants';
 
 export interface PlayOptions {
-    encodedTrack: string;
+    encodedTrack: any;
     identifier?: string;
     options?: {
         paused?: boolean;
@@ -124,10 +124,18 @@ export class Player extends EventEmitter {
     public async playTrack(playable: PlayOptions): Promise<void> {
         const playerOptions: UpdatePlayerOptions = { encodedTrack: playable.encodedTrack, ...playable.options };
 
-        await this.node.rest.updatePlayer({
-            guildId: this.connection.guildId,
-            playerOptions
-        });
+        if (this.node.isV3)
+            this.node.queue.add({
+                op: 'play',
+                guildId: this.connection.guildId,
+                track: playable.encodedTrack,
+                ...playable.options
+            });
+        else
+            await this.node.rest.updatePlayer({
+                guildId: this.connection.guildId,
+                playerOptions
+            });
 
         if (playerOptions.paused)
             this.paused = playerOptions.paused;
@@ -138,73 +146,125 @@ export class Player extends EventEmitter {
     }
 
     public async stopTrack(): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { encodedTrack: null }});
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'stop', guildId: this.connection.guildId });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { encodedTrack: null }});
         this.position = 0;
     }
 
     public async setPaused(paused = true): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { paused }});
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'pause', guildId: this.connection.guildId, pause: paused });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { paused }});
         this.paused = paused;
     }
 
     public async seekTo(position: number): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { position }});
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'seek', guildId: this.connection.guildId, position });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { position }});
         this.position = position;
     }
 
     public async setVolume(volume: number): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { volume }});
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'volume', guildId: this.connection.guildId, volume });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { volume }});
         this.volume = volume;
     }
 
     public async setEqualizer(equalizer: Band[]): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { equalizer }}});
         this.filters.equalizer = equalizer;
+
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'filters', guildId: this.connection.guildId, ...this.filters });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { equalizer }}});
     }
 
     public async setKaraoke(karaoke?: KaraokeSettings): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { karaoke }}});
         this.filters.karaoke = karaoke || null;
+
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'filters', guildId: this.connection.guildId, ...this.filters });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { karaoke }}});
     }
 
     public async setTimescale(timescale?: TimescaleSettings): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { timescale }}});
         this.filters.timescale = timescale || null;
+
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'filters', guildId: this.connection.guildId, ...this.filters });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { timescale }}});
     }
 
     public async setTremolo(tremolo?: FreqSettings): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { tremolo }}});
         this.filters.tremolo = tremolo || null;
+
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'filters', guildId: this.connection.guildId, ...this.filters });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { tremolo }}});
     }
 
     public async setVibrato(vibrato?: FreqSettings): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { vibrato }}});
         this.filters.vibrato = vibrato || null;
+
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'filters', guildId: this.connection.guildId, ...this.filters });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { vibrato }}});
     }
 
     public async setRotation(rotation?: RotationSettings): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { rotation }}});
         this.filters.rotation = rotation || null;
+
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'filters', guildId: this.connection.guildId, ...this.filters });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { rotation }}});
     }
 
     public async setDistortion(distortion: DistortionSettings): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { distortion }}});
         this.filters.distortion = distortion || null;
+
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'filters', guildId: this.connection.guildId, ...this.filters });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { distortion }}});
     }
 
     public async setChannelMix(channelMix: ChannelMixSettings): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { channelMix }}});
         this.filters.channelMix = channelMix || null;
+
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'filters', guildId: this.connection.guildId, ...this.filters });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { channelMix }}});
     }
 
     public async setLowPass(lowPass: LowPassSettings): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { lowPass }}});
         this.filters.lowPass = lowPass || null;
+
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'filters', guildId: this.connection.guildId, ...this.filters });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters: { lowPass }}});
     }
 
     public async setFilters(filters: FilterOptions): Promise<void> {
-        await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters }});
         this.filters = filters;
+
+        if (this.node.isV3)
+            this.node.queue.add({ op: 'filters', guildId: this.connection.guildId, ...this.filters });
+        else
+            await this.node.rest.updatePlayer({ guildId: this.connection.guildId, playerOptions: { filters }});
     }
 
     public clearFilters(): Promise<void> {
@@ -249,6 +309,25 @@ export class Player extends EventEmitter {
 
     public async resume(options: ResumeOptions = {}): Promise<void> {
         if (!this.track) return;
+
+        if (this.node.isV3) {
+            await this.setFilters(options.filters || {});
+
+            if (this.track) {
+
+                await this.playTrack({
+                    encodedTrack: this.track,
+                    options: {
+                        position: this.playerData.playerOptions.position,
+                        paused: this.playerData.playerOptions.paused
+                    }
+                });
+            }
+
+            this.emit('resume', this);
+            return;
+        }
+
         const data = this.playerData;
         if (options.noReplace) data.noReplace = options.noReplace;
         if (options.position) data.playerOptions.position = options.position;

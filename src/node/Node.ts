@@ -5,6 +5,7 @@ import { OPCodes, State } from '../Constants';
 import { sleep } from '../Utils';
 import { Player } from '../player/Player';
 import { Rest } from './Rest';
+import { Queue } from './Queue';
 
 export interface VoiceChannelOptions {
     guildId: string;
@@ -65,12 +66,15 @@ export class Node extends EventEmitter {
     private readonly auth: string;
     public ws: Websocket | null;
     public rest: Rest;
+    public queue: Queue;
+    isV3?: boolean;
 
     constructor(manager: Erebus, options: NodeConfig) {
         super();
 
         this.players = new Map();
         this.rest = new Rest(this, options);
+        this.queue = new Queue(this);
         this.manager = manager;
         this.name = options.name;
         this.group = options.group;
@@ -84,6 +88,8 @@ export class Node extends EventEmitter {
         this.reconnects = 0;
         this.destroyed = false;
         this.sessionId = null;
+
+        this.isV3 = options.isV3 ?? false;
     }
 
     get penalties(): number {
@@ -147,7 +153,7 @@ export class Node extends EventEmitter {
             }
         }
 
-        this.ws = new Websocket(`${this.isSecure ? 'wss' : 'ws'}://${this.url}/v4/websocket`, { headers } as any);
+        this.ws = new Websocket(`${this.isSecure ? 'wss' : 'ws'}://${this.url}/${!this.isV3 ? 'v4/websocket' : ''}`, { headers } as any);
         this.ws.on('message', data => this.message(data));
         this.ws.on('error', error => this.error(error));
         this.ws.once('close', (code, reason) => this.close(code, reason));
@@ -176,7 +182,7 @@ export class Node extends EventEmitter {
     }
 
     private async message(data: unknown) {
-        const json = JSON.parse(data as string);
+        const json = JSON.parse(data as string);console.log(json);
         if (!json) return;
 
         switch (json.op) {
@@ -213,6 +219,12 @@ export class Node extends EventEmitter {
     }
 
     private open(): void {
+        if (this.isV3) {
+            this.state = State.CONNECTED;
+            this.emit('ready');
+            return;
+        }
+
         this.reconnects = 0;
         this.state = State.NEARLY;
     }
@@ -235,6 +247,9 @@ export class Node extends EventEmitter {
 
         this.destroyed = true;
         this.state = State.DISCONNECTING;
+
+        if (this.isV3)
+            this.queue.clear();
 
         if (this.ws)
             this.ws.close(code, reason);

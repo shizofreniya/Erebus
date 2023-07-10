@@ -113,7 +113,7 @@ export class Rest {
 
     constructor(node: Node, options: NodeConfig) {
         this.node = node;
-        this.url = `${options.isSecure ? 'https': 'http'}://${options.url}`;
+        this.url = `${options.isSecure ? 'https': 'http'}://${options.url}${!options.isV3 ? '/v4' : ''}`;
         this.version = `/v4`;
         this.auth = options.auth;
     }
@@ -175,7 +175,7 @@ export class Rest {
     }
 
     protected async fetch<T = unknown>(endpoint: string, options: FetchOptions = {}) {
-        const url = new URL(`${this.url}${this.version}${endpoint}`);
+        const url = new URL(`${this.url}${endpoint}`);
         if (options.params) url.search = new URLSearchParams(options.params).toString();
 
         const abortController = new AbortController();

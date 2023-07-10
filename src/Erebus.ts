@@ -20,6 +20,7 @@ export interface NodeConfig {
     auth: string;
     group?: string;
     isSecure?: boolean;
+    isV3?: boolean;
 }
 
 export class Erebus extends EventEmitter {
