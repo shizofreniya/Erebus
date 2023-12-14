@@ -182,7 +182,7 @@ export class Node extends EventEmitter {
     }
 
     private async message(data: unknown) {
-        const json = JSON.parse(data as string);console.log(json);
+        const json = JSON.parse(data as string);
         if (!json) return;
 
         switch (json.op) {
